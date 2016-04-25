@@ -1,0 +1,19 @@
+html {
+	font-size: 100%;
+}
+
+body {
+	margin-top: 30px;
+	font-family: "Droid";
+	font-size:1em;
+	background-color:black;
+	color:white;
+}
+
+li {
+	margin-bottom:0px;
+}
+
+a {
+	color:#FFFFFF;
+}
