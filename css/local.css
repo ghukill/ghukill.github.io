@@ -1,12 +1,14 @@
 html {
 	font-size: 100%;
+	background-image: url("../img/color_prism.jpg");
+    	/*background-repeat: repeat-y;*/
 }
 
 body {
 	margin-top: 30px;
 	font-family: "Droid";
 	font-size:1em;
-	background-color:black;
+	/*background-color:black;*/
 	color:white;
 }
 
