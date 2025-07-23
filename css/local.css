@@ -1,21 +1,25 @@
 html {
-	font-size: 100%;
-	background-image: url("../img/color_prism.jpg");
-    	/*background-repeat: repeat-y;*/
+    font-size: 100%;
+    background-image: url("../img/color_prism.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    min-height: 100vh;
 }
 
 body {
-	margin-top: 30px;
-	font-family: "Droid";
-	font-size:1em;
-	/*background-color:black;*/
-	color:white;
+    margin-top: 30px;
+    font-family: "Droid";
+    font-size: 1em;
+    /*background-color:black;*/
+    color: white;
 }
 
 li {
-	margin-bottom:0px;
+    margin-bottom: 0px;
 }
 
 a {
-	color:#FFFFFF;
+    color: #ffffff;
 }
