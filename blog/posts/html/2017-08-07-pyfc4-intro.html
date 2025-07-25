@@ -1,0 +1,77 @@
+<h1>2017-08-07-pyfc4-intro</h1>
+<pre><code>{
+  "published": true
+}</code></pre>
+<p>Now that some of scaffolding and ground-leveling is done around a project I've been working on, it felt like a good time to step back and try to philosophize and narratize (that should be a word).  I imagine waxing more on the topic in the future, perhaps on specific aspects, but this might serve as a general introduction and reckoning.</p>
+<p>In short, the project is a python client for Fedora Commons 4 (FC4), boringly called <a href="https://github.com/ghukill/pyfc4">"pyfc4"</a>.  In my defense, I've worked on projects with some pretty fun names: <a href="https://github.com/WSULib/ouroboros">"Ouroboros"</a>, a middleware for wrangling the chaos of a digital collections universe; <a href="https://github.com/WSULib/ichabod">"ichabod"</a>, a <em>headless</em> browser that rendered pages and used fuzzy matching to determine if the content had changed much; to name a couple.  But this felt like a project that deserved a sane, calm, simple name.</p>
+<p>Why's that?  Because, at best, pyfc4 should get out of your way.</p>
+<h2>Background</h2>
+<p>Over the past few years, we've built a digital collections platform/infrastructure I'm quite proud of around Fedora Commons 3.x, Solr, and the other usual suspects.  And we did this using primarily python.  The decision to use python was not calculated, other than we had more collective experience with the language at the time, and were blissfully unaware how much work rolling our own middleware would be, as opposed to using other ecosystems like <a href="https://wiki.duraspace.org/display/samvera/Samvera">Hydra (now Samvera)</a> or <a href="https://islandora.ca/">Islandora</a>, both really excellent and vibrant codebases and communities.</p>
+<p>We knew Fedora was going to be in the mix, but how to communicate with it?  After some initial work making raw HTTP calls to Fedora's REST API, we stumbled on "[eulfedora]"(https://github.com/emory-libraries/eulfedora), the phenomenal, intuitive, and joy-to-use python client for Fedora Commons 3.x.  Eulfedora describes itself as:</p>
+<blockquote>
+<p>eulfedora is a Python module that provides utilities, API wrappers, and classes for interacting with the Fedora-Commons Repository in a pythonic, object-oriented way, with optional Django integration. </p>
+<p>...</p>
+<p>eulfedora.api provides complete access to the Fedora API, primarily making use of Fedora's REST API. This low-level interface is wrapped by eulfedora.server.Repository and eulfedora.models.DigitalObject, which provide a more abstract, object-oriented, and Pythonic way of interacting with a Fedora Repository or with individual objects and datastreams.</p>
+</blockquote>
+<p>This description accurately and succinctly describe what eulfedora is, and does, but does not attempt to justify its existence or utility in the face of alternatives.  It leaves out things like handling encoding, large file streaming, alerting user's to identifiers (PIDs) that break Fedora's PID rules, and the list goes on.  Like other language specific API wrappers out there, Eulfedora wrangles the specification of its target, and that of the target's API, into a patterns and information reporting that is helpful to the user.</p>
+<p>Eulfedora is integral to our digital collections platform, and has functioned almost without reproach for years now.  Sure, we've encountered some strange edge cases, and even submitted an update or two, but 99.99% of the time, eulfedora does precisely <em>what</em> you expect, and <em>how</em> you expect it should happen.</p>
+<p>And so, it's unsurprising that eulfedora would be an inspiration for pyfc4; a python client to serve a very similar, but worth noting, not identical, role for Fedora Commons 4.x and its complete overhaul of philosophy and architecture.</p>
+<p>One area that pyfc4 distinctly deviates from eulfedora is no current integrations or configurations specific to Django.  That time may come, but not yet.</p>
+<h2>Overview</h2>
+<p>pyfc4 is envisioned as a lightweight python client for interacting with an instance of Fedora Commons 4.x.  The idea was to map the majority, if not all, of Fedora's API endpoints and functions to methods and patterns within pyfc4.</p>
+<p>Similar to eulfedora, it imagines interacting with Fedora via a <code>Repository</code> instance, and then working on and managing <code>Reource</code>'s.  It can be broken down into the following high-level models:</p>
+<ul>
+<li><code>Repository</code><ul>
+<li><code>Transaction</code></li>
+</ul>
+</li>
+<li><code>API</code></li>
+<li><code>Resource</code><ul>
+<li><code>ResourceVersion</code></li>
+<li><code>RDFSource</code></li>
+<li><code>Container</code><ul>
+<li><code>BasicContainer</code></li>
+<li><code>DirectContainer</code></li>
+<li><code>IndirectContainer</code></li>
+</ul>
+</li>
+<li><code>NonRDFSource</code></li>
+</ul>
+</li>
+</ul>
+<p>Very generally, if <code>repo</code> were an instance of <code>Repository</code>, it is passed around to <code>Resource</code> instances, which itself has a hierarchy of classes that align with the <a href="https://www.w3.org/TR/ldp/">Linked Data Platform (LDP)</a> that Fedora Commons 4.x is, itself, an implementation of.</p>
+<p>pyfc4 supports <a href="https://wiki.duraspace.org/display/FEDORA473/Transactions">transactions</a>, <a href="https://wiki.duraspace.org/display/FEDORA473/Versioning">versioning</a> of resources, and the more mundane but important CRUD operations for resources.  One example of the utility of pyfc4, to pick on the "U" from CRUD, would be updating resources.</p>
+<h3>Updates</h3>
+<p>Updates in FC4, if not overwriting the totality of a resource's metadata (which is not preferred for a number of reasons), are performed by issuing <code>PATCH</code> requests containing a SPARQL update query.  Now, like any convenience pattern or method from a client library, this is something quite doable, step-by-step, determining what triples have been added, removed, modified, building the SPARQL query with the correct <code>DELETE {}</code>, <code>INSERT {}</code>, <code>WHERE {}</code> syntax.  But you're going to be doing this often.  pyfc4 approaches this common task in the following way:</p>
+<ol>
+<li>when retrieving a resource, storing the current state of the RDF graph as <code>self.rdf. _orig_graph</code></li>
+<li>all local changes to the resource's graph -- adding triples, removing them, etc. -- is made to a copy of that graph at <code>self.rdf.graph</code></li>
+<li>when it comes time to update the server with local changes, a diff is calculated between the original graph and the modified one, and converted into a SPARQL query that is sent to the server via a <code>PATCH</code> request</li>
+</ol>
+<p>It's much more convenient to type <code>foo.update()</code> than navigating those distinct phases each time, and a library like pyfc4 provides that convenience.  It also provides a single point of interaction for updates that can be optimized and improved over time, instead of simliar, but not identical, methods for updating resources.  Just one example, but an exmample nonetheless of why a client is helpful as opposed to making requests to a raw API endpoint.</p>
+<h3>RDF / graph interactions</h3>
+<p>Another area that pyfc4 might make one's life easier, if not speedier, is interacting with the RDF payloads that FC4 provides for a resource.  pyfc4 parses this graph -- handling a variety of different RDF serialization formats for input or output -- and provides some convenient ways to access those triples.  </p>
+<p>One particularly handy way is an object-like approach.  pyfc4 parses the graph from a resource, and based on the URIs of the predicates, and stored prefixes, stores them by prefix with the objectcs accessible through dot notation.</p>
+<p>For example, if <code>foo</code> is a retrieved <code>BasicContainer</code> resource:</p>
+<p>```</p>
+<h1>get ldp:contains</h1>
+<p>In [6]: foo.rdf.triples.ldp.contains
+Out[6]:
+[rdflib.term.URIRef('http://localhost:8080/rest/foo/bar'),
+ rdflib.term.URIRef('http://localhost:8080/rest/foo/baz')]</p>
+<h1>In [8]: goober.rdf.triples.foaf.knows</h1>
+<p>Out[8]: [rdflib.term.URIRef('http://localhost:8080/rest/tronic/tronic2')]</p>
+<h1>a more complete example of how this trickles through</h1>
+<h1>add namespace</h1>
+<p>In [9]: foo.add_namespace('licorice','http://licorice.org#')</p>
+<h1>add triple</h1>
+<p>In [10]: foo.add_triple(foo.rdf.prefixes.licorice.best_color, 'black')</p>
+<h1>update</h1>
+<p>In [11]: foo.update()
+Out[11]: True</p>
+<h1>now, object-like access to this triple parsed from graph</h1>
+<p>In [12]: foo.rdf.triples.licorice.best_color
+Out[12]: [rdflib.term.Literal('black', datatype=rdflib.term.URIRef('http://www.w3.org/2001/XMLSchema#string'))]
+```</p>
+<p>Though pyfc4 is working nicely in the lovely cleanspace of testing and spec fullfillment, I'm hopeful that putting it to work for actual repository tasks will reveal other areas that convenience patterns and methods can be put in place.  Perhaps even distilling common patterns into processes or approaches that would be faster than raw, and numerous, API calls.</p>
+<p>Okay, enough for now.  While I could go on, a dentist appointment looms, and that is perhaps the best excuse to keep this short and sweet for now.  In the meantime, more documentation, examples, and information can be found on the github page: <a href="https://github.com/ghukill/pyfc4">https://github.com/ghukill/pyfc4</a>.</p>

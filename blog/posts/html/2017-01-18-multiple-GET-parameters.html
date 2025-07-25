@@ -1,0 +1,21 @@
+<h1>2017-01-18-multiple-GET-parameters</h1>
+<pre><code>{
+  "published": true
+}</code></pre>
+<p>An interesting aside about GET parameters, particularly of the multiple variety.</p>
+<p>Solr accepts, where appropriate <em>expects</em>, the same <code>GET</code> parameter multiple times.  e.g. the <code>fq</code> parameter:</p>
+<pre><code>http://example.org/solr/search?q=goober&amp;fq=foo:bar&amp;fq=foo:baz
+</code></pre>
+<p>Pardon an oversimplification, but in this scenario Solr is using a custom parser to parse the multiple <code>fq</code> <code>GET</code> parameters.  It is custom, in a sense, because <a href="https://tools.ietf.org/html/rfc3986#section-3.4">RFC 3986</a>, which serves as a specification for generic URLs and parsing parameters, doesn't explicitly discuss how to handle multiple <code>GET</code> parameters.</p>
+<p>But they exist.  And Solr is a great example.</p>
+<p>Further speculating under the hood in Solr, you can divine that it also allows nesting of values in <code>GET</code> parameters, as demonstrated with fields like <code>facet.field</code> which, in addition to being repeatable, also exists next to a frighteningly similar field <code>facet</code>.  When solr parses a URL such as:</p>
+<pre><code>http://example.org/solr/search?q=goober&amp;fq=foo:bar&amp;fq=foo:baz&amp;facet=true&amp;facet.field=foo
+</code></pre>
+<p>we can assume that anything with a <code>facet.</code> prefix, like <code>facet.field</code>, is probably getting grouped as a nested structure Solr-side.</p>
+<p>But how do other systems handle this?</p>
+<p>There is a convention, not a specification, that I stumble on from time to time that can be a bit of a headache.  Some libraries fallback on using square brackets <code>[]</code> affixed at the end of a field to tell future parsers that this field is repeating, and should be slotted into some kind of list or array, instead of overwriting a key / value pair previously seen in the URL.</p>
+<p>This is great, and works for well for back and forths between systems, but can be complicated when those parameters eventually need to slung over to Solr.  Python Flask, for example, out of the box, only handles repeating <code>GET</code> parameters when they come in with the <code>[]</code> suffix. e.g. </p>
+<pre><code>http://example.org/route?fq[]=bar&amp;fq[]=baz
+</code></pre>
+<p>This means, before you can scuttle over to Solr, you'd need to rename these <code>fq[]</code> keys to <code>fq</code>, as Solr does not know what to do with <code>fq[]</code>.  </p>
+<p>Just one of those things.  But interesting, and perhaps telling, that the HTTP protocol and parameter parsing is getting pushed to it's logical limits this day in age.</p>

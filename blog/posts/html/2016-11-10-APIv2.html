@@ -1,0 +1,33 @@
+<h1>2016-11-10-APIv2</h1>
+<pre><code>{
+  "published": true,
+  "layout": "post"
+}</code></pre>
+<h2>APIv2</h2>
+<p><img alt="" src="images/apiv2.png" /></p>
+<p>I'm excited to say, work has commenced on a rewrite of <a href="https://github.com/WSULib/ouroboros/tree/9c29ba6d30ac68aa235a7560f2e8d39d65d53ed4/WSUDOR_API">Digital Collection's primary API</a> (pinning this link to a commit before the API disappears as we know it).  I also use the term "API" a bit loosely here, as it has served almost exclusively for internal use, powering our decoupled front-end.  Now an API that is used wholly internally certainly qualifies under the myriad of API definitions out there.  Where I challenge that coveted title is the lack of consistency and documentation it has exhibited until this point.</p>
+<p>And that's okay!  Which, if one hasn't noticed already, is a running theme around here.</p>
+<p>The API grew piecemeal with the rest of the ecosystem.  Where once it queried Solr directly for an object's metadata, later it would retrieve that Solr doc via a <a href="https://github.com/WSULib/ouroboros/blob/9c29ba6d30ac68aa235a7560f2e8d39d65d53ed4/WSUDOR_Manager/models.py#L388-L389">method buried in an Ouroboros content-type object</a>.  Where once we would fire off multiple API functions to fire -- member of collections, related objects, comprehension of images, etc. -- later they were grouped under a <a href="https://github.com/WSULib/ouroboros/blob/9c29ba6d30ac68aa235a7560f2e8d39d65d53ed4/WSUDOR_API/functions/packagedFunctions.py#L30"><code>singleObjectPackage</code> class</a> that aggregated and returned all that information in single, sprawling response.  It's come a long way, and has proved to be extremely versatile, reliable, and fun to build.</p>
+<p>But <a href="http://grahamhukill.com/blog/2016/11/08/framework-v2-frontend.html">as mentioned in a previous post</a>, we are in the process of re-building / refreshing the front-end, and the opportunity presented itself to rework, refine, and wildly improve a meandering bit of code.</p>
+<p>With this opportunity to completely restructure the API, it's a great time to leverage a library that might help with building out an API.  After a bit of poking around, <a href="http://flask-restful-cn.readthedocs.io/en/0.3.4/index.html">Flask-RESTful</a> emerged as a <strong>very</strong> enticing option, and the route I think we're going.  For a variety of reasons:</p>
+<h3>ability to handle client content negotion (with a bit of finagling)</h3>
+<p>One of our goals with the Digital Collections is to treat our collections as data in many ways (a <a href="https://www.google.com/search?q=%22collections+as+data%22">quick Googling</a> will reveal the blossoming ideas and literature around this idea, perhaps fodder for another typing).  Mark Phillips from UNT has a <a href="http://vphill.com/journal/post/2845/">neat post about hacking their resource URLs</a>, that left a lasting impression.  Excited about the thoughtful way in which the URL could be leveraged for different views and pieces of a resource.  It percolated for a bit until this opportunity for API and front-end reworking, and the simulataneous emphasis on collections as data, presented itself.</p>
+<p>Without losing the thread too quickly here, I would like our API for routes such as <code>/item/wayne:foobar/metadata</code> or <code>/item/wayne:foobar/?</code> to return metadata in JSON form, but then have a route like <code>/item/wayne:foobar/txt</code> -- if it's a book -- return raw text, with a <code>text/plain</code> <code>Content-Type</code> header.  More to the point of content negotiation, let the client request different forms of the same information at the same route.</p>
+<h3>parameter parsing built-in</h3>
+<p>Good grief, this is just a no brainer.  We can enforce parameters types (string, int, etc.), and automatically return responses specific to a particular parameter, with appropriate HTTP codes, as well.  Sign me up.</p>
+<h3>and more</h3>
+<p>This is really just the tip of the iceburg.  Instead of wiring and hand-rolling each response or error, we can pipe our data through this library in a coherent fashion each time.  Moreover, this pattern I keep encountering, I would like to put the <a href="http://www.etymonline.com/index.php?term=kibosh&amp;allowed_in_frame=0">kibosh</a> on:</p>
+<ol>
+<li>dreaming up new thing, exploring options</li>
+<li>begin to build from scratch, stumble on other libraries</li>
+<li>great excitement</li>
+<li>realize that libraries have a learning curve</li>
+<li>sense of "meh", continue building from scratch</li>
+<li>progress slows as better understanding of requisite bits and pieces emerges</li>
+<li>continue building...</li>
+<li>cobbled code meets minimum requirements</li>
+<li>begin to improve and refactor, realize that original libraries held functionality all along</li>
+<li>realize spending much more time on writing bits and pieces than would have spent learning library</li>
+<li>vow to never make this mistake again</li>
+</ol>
+<p>And SO, mistake made not again!  <a href="http://flask-restful-cn.readthedocs.io/en/0.3.4/index.html">Flask-RESTful</a> has been an utter delight thus far, and looking forward to pressing on.</p>
